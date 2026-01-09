@@ -16,6 +16,9 @@ namespace ZGS.Analytics
 
             if (!config.EnableAnalytics) return;
 
+            // 设置 Debug 模式
+            AnalyticsConfig.DebugMode = config.debugMode;
+
             // ZGS Server Provider
             if (!string.IsNullOrEmpty(config.zgsServerUrl))
             {
