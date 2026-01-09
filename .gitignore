@@ -1,6 +1,3 @@
-# Unity meta files for standalone package
-*.meta
-
 # OS
 .DS_Store
 Thumbs.db
