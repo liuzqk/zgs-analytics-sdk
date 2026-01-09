@@ -22,13 +22,17 @@ namespace ZGS.Analytics
     {
         private const string QueueKey = "zgs_analytics_queue";
         private const int MaxQueueSize = 500;
-        
+        private const float SaveInterval = 5f; // 批量保存间隔（秒）
+
         private readonly Queue<string> _memoryQueue = new();
         private bool _isFlushing;
+        private bool _isDirty;
+        private float _lastSaveTime;
 
         public OfflineQueue()
         {
             LoadFromStorage();
+            _lastSaveTime = Time.realtimeSinceStartup;
         }
 
         /// <summary>
@@ -45,17 +49,35 @@ namespace ZGS.Analytics
         public void Enqueue(string json)
         {
             if (string.IsNullOrEmpty(json)) return;
-            
+
             lock (_memoryQueue)
             {
                 _memoryQueue.Enqueue(json);
-                
+
                 // 防止内存溢出
                 while (_memoryQueue.Count > MaxQueueSize)
                     _memoryQueue.Dequeue();
             }
-            
-            SaveToStorage();
+
+            // 标记脏，延迟批量保存
+            _isDirty = true;
+            TrySaveIfNeeded();
+        }
+
+        /// <summary>
+        /// 检查是否需要保存（防抖机制）
+        /// </summary>
+        private void TrySaveIfNeeded()
+        {
+            if (!_isDirty) return;
+
+            float now = Time.realtimeSinceStartup;
+            if (now - _lastSaveTime >= SaveInterval)
+            {
+                SaveToStorage();
+                _isDirty = false;
+                _lastSaveTime = now;
+            }
         }
 
         /// <summary>
@@ -63,8 +85,16 @@ namespace ZGS.Analytics
         /// </summary>
         public void FlushAll(string serverUrl, string secret)
         {
+            // Flush 前强制保存未持久化的数据
+            if (_isDirty)
+            {
+                SaveToStorage();
+                _isDirty = false;
+                _lastSaveTime = Time.realtimeSinceStartup;
+            }
+
             if (_isFlushing) return;
-            
+
             var runner = CoroutineRunner.Instance;
             if (runner != null)
                 runner.StartCoroutine(FlushCoroutine(serverUrl, secret));

@@ -176,7 +176,27 @@ namespace ZGS.Analytics
                 switch (value)
                 {
                     case string s:
-                        sb.AppendFormat("\"{0}\"", s.Replace("\\", "\\\\").Replace("\"", "\\\""));
+                        sb.Append('"');
+                        foreach (char c in s)
+                        {
+                            switch (c)
+                            {
+                                case '\\': sb.Append("\\\\"); break;
+                                case '"': sb.Append("\\\""); break;
+                                case '\n': sb.Append("\\n"); break;
+                                case '\r': sb.Append("\\r"); break;
+                                case '\t': sb.Append("\\t"); break;
+                                case '\b': sb.Append("\\b"); break;
+                                case '\f': sb.Append("\\f"); break;
+                                default:
+                                    if (c < 32)
+                                        sb.AppendFormat("\\u{0:x4}", (int)c);
+                                    else
+                                        sb.Append(c);
+                                    break;
+                            }
+                        }
+                        sb.Append('"');
                         break;
                     case bool b:
                         sb.Append(b ? "true" : "false");
@@ -194,7 +214,26 @@ namespace ZGS.Analytics
                         sb.Append(l);
                         break;
                     default:
-                        sb.AppendFormat("\"{0}\"", value);
+                        // 其他类型转字符串并转义
+                        sb.Append('"');
+                        string str = value.ToString();
+                        foreach (char c in str)
+                        {
+                            switch (c)
+                            {
+                                case '\\': sb.Append("\\\\"); break;
+                                case '"': sb.Append("\\\""); break;
+                                case '\n': sb.Append("\\n"); break;
+                                case '\r': sb.Append("\\r"); break;
+                                default:
+                                    if (c < 32)
+                                        sb.AppendFormat("\\u{0:x4}", (int)c);
+                                    else
+                                        sb.Append(c);
+                                    break;
+                            }
+                        }
+                        sb.Append('"');
                         break;
                 }
             }
